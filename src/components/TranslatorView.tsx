@@ -61,6 +61,25 @@ export const TranslatorView: React.FC<TranslatorViewProps> = ({ onBack }) => {
   const [copied, setCopied] = useState<boolean>(false);
   const [isListening, setIsListening] = useState<boolean>(false);
 
+  // Stop any active speech synthesis audio
+  const stopSpeech = () => {
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+  };
+
+  // Clean up audio speech when leaving view / unmounting component
+  React.useEffect(() => {
+    return () => {
+      stopSpeech();
+    };
+  }, []);
+
+  const handleBack = () => {
+    stopSpeech();
+    onBack();
+  };
+
   // Swap Source and Target Languages
   const handleSwapLanguages = () => {
     if (sourceLang === "auto") {
@@ -205,7 +224,7 @@ export const TranslatorView: React.FC<TranslatorViewProps> = ({ onBack }) => {
       {/* Top Header */}
       <div className="flex items-center justify-between border-b border-purple-800/40 pb-3">
         <button
-          onClick={onBack}
+          onClick={handleBack}
           className="flex items-center gap-1.5 text-xs font-bold text-purple-300 hover:text-white bg-purple-900/40 hover:bg-purple-800/60 px-3 py-1.5 rounded-xl border border-purple-500/30 transition-all active:scale-95"
         >
           <ArrowLeft className="w-4 h-4" />

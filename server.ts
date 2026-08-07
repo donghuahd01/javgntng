@@ -171,15 +171,27 @@ Berikan respon dalam format JSON murni:
   "synonyms": ["sinonim 1", "sinonim 2"] (opsional, max 3)
 }`;
 
-        const geminiRes = await ai.models.generateContent({
-          model: "gemini-3.6-flash",
-          contents: prompt,
-          config: {
-            responseMimeType: "application/json",
-          },
-        });
-
-        const rawText = geminiRes.text?.trim();
+        let rawText: string | undefined = undefined;
+        try {
+          const geminiRes = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: prompt,
+            config: {
+              responseMimeType: "application/json",
+            },
+          });
+          rawText = geminiRes.text?.trim();
+        } catch (m1Err) {
+          console.warn("gemini-2.5-flash failed, trying gemini-1.5-flash:", m1Err);
+          const geminiRes = await ai.models.generateContent({
+            model: "gemini-1.5-flash",
+            contents: prompt,
+            config: {
+              responseMimeType: "application/json",
+            },
+          });
+          rawText = geminiRes.text?.trim();
+        }
         if (rawText) {
           const parsed = JSON.parse(rawText);
           return res.json({
