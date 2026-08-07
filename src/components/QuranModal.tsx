@@ -100,9 +100,36 @@ export const QuranModal: React.FC<QuranModalProps> = ({ isOpen, onClose }) => {
     setIsLoadingList(true);
     setErrorMsg(null);
     try {
-      const res = await fetch("/api/quran/surat");
-      const data = await res.json();
-      if (data.success && Array.isArray(data.data)) {
+      let data: any = null;
+      try {
+        const res = await fetch("/api/quran/surat");
+        if (res.ok) {
+          data = await res.json();
+        }
+      } catch (backendErr) {
+        console.warn("Backend Quran List API failed, attempting direct fetch:", backendErr);
+      }
+
+      // Direct Client Fallback
+      if (!data || !data.success || !Array.isArray(data.data)) {
+        const eqRes = await fetch("https://equran.id/api/v2/surat");
+        const eqJson = await eqRes.json();
+        if (eqJson && eqJson.code === 200 && Array.isArray(eqJson.data)) {
+          const cleaned = eqJson.data.map((s: any) => ({
+            ...s,
+            audioFull: {
+              ...s.audioFull,
+              "05": s.audioFull?.["05"] || `https://cdn.islamic.network/quran/audio-surah/128/ar.alafasy/${s.nomor}.mp3`,
+            },
+          }));
+          data = {
+            success: true,
+            data: cleaned,
+          };
+        }
+      }
+
+      if (data && data.success && Array.isArray(data.data)) {
         setSurahList(data.data);
         setFilteredSurahs(data.data);
       } else {
@@ -121,9 +148,33 @@ export const QuranModal: React.FC<QuranModalProps> = ({ isOpen, onClose }) => {
     setErrorMsg(null);
     stopAudio();
     try {
-      const res = await fetch(`/api/quran/surat/${surahNumber}`);
-      const data = await res.json();
-      if (data.success && data.data) {
+      let data: any = null;
+      try {
+        const res = await fetch(`/api/quran/surat/${surahNumber}`);
+        if (res.ok) {
+          data = await res.json();
+        }
+      } catch (backendErr) {
+        console.warn("Backend Quran Detail API failed, attempting direct fetch:", backendErr);
+      }
+
+      // Direct Client Fallback
+      if (!data || !data.success || !data.data) {
+        const eqRes = await fetch(`https://equran.id/api/v2/surat/${surahNumber}`);
+        const eqJson = await eqRes.json();
+        if (eqJson && eqJson.code === 200 && eqJson.data) {
+          const d = eqJson.data;
+          if (d.audioFull) {
+            d.audioFull["05"] = d.audioFull["05"] || `https://cdn.islamic.network/quran/audio-surah/128/ar.alafasy/${d.nomor}.mp3`;
+          }
+          data = {
+            success: true,
+            data: d,
+          };
+        }
+      }
+
+      if (data && data.success && data.data) {
         setSelectedSurah(data.data);
       } else {
         throw new Error("Gagal memuat detail surat");

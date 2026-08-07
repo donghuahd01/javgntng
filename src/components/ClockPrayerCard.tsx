@@ -54,8 +54,45 @@ export const ClockPrayerCard: React.FC = () => {
   const fetchPrayerTimes = async (city: string) => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/prayer-times?city=${encodeURIComponent(city)}`);
-      const data = await res.json();
+      let data: any = null;
+      try {
+        const res = await fetch(`/api/prayer-times?city=${encodeURIComponent(city)}`);
+        if (res.ok) {
+          data = await res.json();
+        }
+      } catch (backendErr) {
+        console.warn("Backend Prayer Times API failed, attempting direct fetch:", backendErr);
+      }
+
+      // Client Direct Fallback
+      if (!data || !data.success || !data.timings) {
+        const aladhanRes = await fetch(`https://api.aladhan.com/v1/timingsByCity?city=${encodeURIComponent(city)}&country=Indonesia&method=11`);
+        const aladhanJson = await aladhanRes.json();
+        if (aladhanJson && aladhanJson.code === 200 && aladhanJson.data) {
+          const t = aladhanJson.data.timings;
+          const d = aladhanJson.data.date;
+          data = {
+            success: true,
+            city,
+            country: "Indonesia",
+            date: {
+              readable: d.readable,
+              hijri: `${d.hijri.day} ${d.hijri.month.ar} / ${d.hijri.month.en} ${d.hijri.year} AH`,
+              gregorian: `${d.gregorian.weekday.en}, ${d.gregorian.day} ${d.gregorian.month.en} ${d.gregorian.year}`,
+            },
+            timings: {
+              Subuh: t.Fajr,
+              Syuruq: t.Sunrise,
+              Dzuhur: t.Dhuhr,
+              Ashar: t.Asr,
+              Maghrib: t.Maghrib,
+              Isya: t.Isha,
+              Imsak: t.Imsak,
+            },
+          };
+        }
+      }
+
       if (data && data.success && data.timings) {
         setPrayerData(data);
       }

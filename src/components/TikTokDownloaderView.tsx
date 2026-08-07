@@ -55,16 +55,64 @@ export const TikTokDownloaderView: React.FC<TikTokDownloaderViewProps> = ({ onBa
     setDownloadSuccessMsg(null);
 
     try {
-      const res = await fetch("/api/tiktok/download", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: url.trim() }),
-      });
+      let data: any = null;
+      try {
+        const res = await fetch("/api/tiktok/download", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: url.trim() }),
+        });
+        if (res.ok) {
+          data = await res.json();
+        }
+      } catch (backendErr) {
+        console.warn("Backend TikTok API failed, attempting direct client fetch:", backendErr);
+      }
 
-      const data = await res.json();
+      // Client Direct Fallback if backend API failed or returned error
+      if (!data || !data.success) {
+        const directRes = await fetch(`https://www.tikwm.com/api/?url=${encodeURIComponent(url.trim())}&hd=1`, {
+          headers: {
+            "Accept": "application/json",
+          },
+        });
+        const directJson = await directRes.json();
+        if (directJson && directJson.code === 0 && directJson.data) {
+          const d = directJson.data;
+          data = {
+            success: true,
+            id: d.id,
+            title: d.title || "Video TikTok",
+            cover: d.cover,
+            origin_cover: d.origin_cover,
+            duration: d.duration,
+            play: d.play.startsWith("http") ? d.play : `https://www.tikwm.com${d.play}`,
+            wmplay: d.wmplay ? (d.wmplay.startsWith("http") ? d.wmplay : `https://www.tikwm.com${d.wmplay}`) : null,
+            hdplay: d.hdplay ? (d.hdplay.startsWith("http") ? d.hdplay : `https://www.tikwm.com${d.hdplay}`) : null,
+            music: d.music ? (d.music.startsWith("http") ? d.music : `https://www.tikwm.com${d.music}`) : null,
+            music_info: d.music_info ? {
+              title: d.music_info.title,
+              author: d.music_info.author,
+              play: d.music_info.play,
+            } : null,
+            author: {
+              nickname: d.author?.nickname || "Pengguna TikTok",
+              unique_id: d.author?.unique_id || "tiktok_user",
+              avatar: d.author?.avatar,
+            },
+            stats: {
+              digg_count: d.digg_count || 0,
+              comment_count: d.comment_count || 0,
+              share_count: d.share_count || 0,
+              play_count: d.play_count || 0,
+            },
+            images: d.images ? d.images.map((img: string) => img.startsWith("http") ? img : `https://www.tikwm.com${img}`) : [],
+          };
+        }
+      }
 
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || "Gagal mengunduh video TikTok.");
+      if (!data || !data.success) {
+        throw new Error(data?.error || "Gagal mengunduh video TikTok. Pastikan link video publik dan valid.");
       }
 
       setResult(data);

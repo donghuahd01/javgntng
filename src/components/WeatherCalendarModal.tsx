@@ -119,9 +119,73 @@ export const WeatherCalendarModal: React.FC<WeatherCalendarModalProps> = ({
   const fetchWeather = async (city: string) => {
     setIsLoadingWeather(true);
     try {
-      const res = await fetch(`/api/weather?city=${encodeURIComponent(city)}`);
-      const data = await res.json();
-      if (data.success) {
+      let data: any = null;
+      try {
+        const res = await fetch(`/api/weather?city=${encodeURIComponent(city)}`);
+        if (res.ok) {
+          data = await res.json();
+        }
+      } catch (backendErr) {
+        console.warn("Backend Weather API failed, attempting direct fetch:", backendErr);
+      }
+
+      // Client Direct Fallback using Open-Meteo
+      if (!data || !data.success) {
+        const CITY_COORDS: { [key: string]: { lat: number; lon: number } } = {
+          Jakarta: { lat: -6.2088, lon: 106.8456 },
+          Surabaya: { lat: -7.2575, lon: 112.7521 },
+          Bandung: { lat: -6.9175, lon: 107.6191 },
+          Medan: { lat: 3.5952, lon: 98.6722 },
+          Yogyakarta: { lat: -7.7956, lon: 110.3695 },
+          Semarang: { lat: -6.9667, lon: 110.4167 },
+          Makassar: { lat: -5.1477, lon: 119.4327 },
+          Palembang: { lat: -2.9761, lon: 104.7754 },
+          Denpasar: { lat: -8.6705, lon: 115.2126 },
+        };
+        const coords = CITY_COORDS[city] || CITY_COORDS["Jakarta"];
+        const omRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=Asia%2FJakarta`);
+        const omJson = await omRes.json();
+
+        if (omJson && omJson.current) {
+          const cur = omJson.current;
+          const daysOfWeek = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+          const getCond = (code: number) => {
+            if (code === 0) return { condition: "Cerah", icon: "☀️" };
+            if (code >= 1 && code <= 3) return { condition: "Cerah Berawan", icon: "⛅" };
+            if (code >= 45 && code <= 48) return { condition: "Berkarabut / Kabut", icon: "🌫️" };
+            if (code >= 51 && code <= 67) return { condition: "Hujan Ringan", icon: "🌧️" };
+            if (code >= 80 && code <= 82) return { condition: "Hujan Lebat", icon: "🌧️" };
+            if (code >= 95) return { condition: "Hujan Badai", icon: "⛈️" };
+            return { condition: "Berawan", icon: "☁️" };
+          };
+          const condInfo = getCond(cur.weather_code);
+          const forecast = (omJson.daily?.time || []).slice(0, 5).map((dateStr: string, idx: number) => {
+            const d = new Date(dateStr);
+            const c = getCond(omJson.daily.weather_code[idx]);
+            return {
+              day: daysOfWeek[d.getDay()],
+              tempMin: Math.round(omJson.daily.temperature_2m_min[idx]),
+              tempMax: Math.round(omJson.daily.temperature_2m_max[idx]),
+              condition: c.condition,
+              icon: c.icon,
+            };
+          });
+
+          data = {
+            success: true,
+            city,
+            temperature: Math.round(cur.temperature_2m),
+            condition: condInfo.condition,
+            icon: condInfo.icon,
+            humidity: cur.relative_humidity_2m,
+            windSpeed: Math.round(cur.wind_speed_10m),
+            uvIndex: 6,
+            forecast,
+          };
+        }
+      }
+
+      if (data && data.success) {
         setWeatherData(data);
       }
     } catch (e) {

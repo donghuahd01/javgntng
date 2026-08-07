@@ -1,6 +1,5 @@
 import express from "express";
 import path from "path";
-import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
 
@@ -44,7 +43,7 @@ function getGeminiClient(): GoogleGenAI | null {
 // ----------------------------------------------------
 // API 1: TikTok Downloader Endpoint (Third-Party Integration)
 // ----------------------------------------------------
-app.post("/api/tiktok/download", async (req, res) => {
+app.post(["/api/tiktok/download", "/tiktok/download"], async (req, res) => {
   try {
     const { url } = req.body;
     if (!url || typeof url !== "string") {
@@ -144,7 +143,7 @@ app.post("/api/tiktok/download", async (req, res) => {
 // ----------------------------------------------------
 // API 2: Language Translation Endpoint (Gemini + MyMemory Third-Party API)
 // ----------------------------------------------------
-app.post("/api/translate", async (req, res) => {
+app.post(["/api/translate", "/translate"], async (req, res) => {
   try {
     const { text, sourceLang = "auto", targetLang = "id", style = "general" } = req.body;
     if (!text || typeof text !== "string" || !text.trim()) {
@@ -228,7 +227,7 @@ Berikan respon dalam format JSON murni:
 // ----------------------------------------------------
 // API 3: Prayer Times Endpoint (Aladhan Third-Party API)
 // ----------------------------------------------------
-app.get("/api/prayer-times", async (req, res) => {
+app.get(["/api/prayer-times", "/prayer-times"], async (req, res) => {
   try {
     const city = (req.query.city as string) || "Jakarta";
     const country = (req.query.country as string) || "Indonesia";
@@ -296,7 +295,7 @@ app.get("/api/prayer-times", async (req, res) => {
 // ----------------------------------------------------
 // API 4: Al-Qur'an Endpoints (EQuran API Integration)
 // ----------------------------------------------------
-app.get("/api/quran/surat", async (req, res) => {
+app.get(["/api/quran/surat", "/quran/surat"], async (req, res) => {
   try {
     const equranRes = await fetch("https://equran.id/api/v2/surat");
     const equranData = await equranRes.json();
@@ -346,7 +345,7 @@ app.get("/api/quran/surat", async (req, res) => {
   }
 });
 
-app.get("/api/quran/surat/:id", async (req, res) => {
+app.get(["/api/quran/surat/:id", "/quran/surat/:id"], async (req, res) => {
   try {
     const { id } = req.params;
     const equranRes = await fetch(`https://equran.id/api/v2/surat/${id}`);
@@ -431,7 +430,7 @@ function getWeatherCondition(code: number): { condition: string; icon: string } 
   return { condition: "Berawan", icon: "☁️" };
 }
 
-app.get("/api/weather", async (req, res) => {
+app.get(["/api/weather", "/weather"], async (req, res) => {
   try {
     const city = (req.query.city as string) || "Jakarta";
     const coords = CITY_COORDS[city] || CITY_COORDS["Jakarta"];
@@ -511,6 +510,7 @@ app.get("/api/weather", async (req, res) => {
 
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",

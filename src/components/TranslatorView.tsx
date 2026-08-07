@@ -95,21 +95,48 @@ export const TranslatorView: React.FC<TranslatorViewProps> = ({ onBack }) => {
     setError(null);
 
     try {
-      const res = await fetch("/api/translate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          text: inputText.trim(),
-          sourceLang,
-          targetLang,
-          style,
-        }),
-      });
+      let data: any = null;
+      try {
+        const res = await fetch("/api/translate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            text: inputText.trim(),
+            sourceLang,
+            targetLang,
+            style,
+          }),
+        });
+        if (res.ok) {
+          data = await res.json();
+        }
+      } catch (backendErr) {
+        console.warn("Backend Translate API failed, attempting direct MyMemory fetch:", backendErr);
+      }
 
-      const data = await res.json();
+      // Client Direct Fallback
+      if (!data || !data.success) {
+        const srcCode = sourceLang === "auto" ? "autodetect" : sourceLang;
+        const langpair = `${srcCode}|${targetLang}`;
+        const mmUrl = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(inputText.trim())}&langpair=${encodeURIComponent(langpair)}`;
+        const mmRes = await fetch(mmUrl);
+        const mmJson = await mmRes.json();
 
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || "Gagal menerjemahkan teks.");
+        if (mmJson && mmJson.responseData && mmJson.responseData.translatedText) {
+          data = {
+            success: true,
+            translatedText: mmJson.responseData.translatedText,
+            detectedSourceLang: mmJson.responseData.match || sourceLang,
+            phonetic: null,
+            notes: null,
+            synonyms: [],
+            engine: "MyMemory Neural API (Direct Client)",
+          };
+        }
+      }
+
+      if (!data || !data.success) {
+        throw new Error(data?.error || "Gagal menerjemahkan teks.");
       }
 
       setResult(data);
