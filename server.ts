@@ -209,24 +209,34 @@ Berikan respon dalam format JSON murni:
       }
     }
 
-    // Strategy 2: Third-Party Translation API (MyMemory)
-    const srcCode = sourceLang === "auto" ? "autodetect" : sourceLang;
-    const langpair = `${srcCode}|${targetLang}`;
-    const myMemoryUrl = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text.trim())}&langpair=${encodeURIComponent(langpair)}`;
+    // Strategy 2: Google Translate GTX API (Universal Fallback for All Languages)
+    const sl = sourceLang === "auto" ? "auto" : (sourceLang === "jv" ? "jw" : sourceLang);
+    const tl = targetLang === "jv" ? "jw" : targetLang;
+    const gtxUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sl}&tl=${tl}&dt=t&q=${encodeURIComponent(text.trim())}`;
 
-    const myMemoryRes = await fetch(myMemoryUrl);
-    const mmData = await myMemoryRes.json();
+    const gtxRes = await fetch(gtxUrl);
+    const gtxData = await gtxRes.json();
 
-    if (mmData && mmData.responseData && mmData.responseData.translatedText) {
-      return res.json({
-        success: true,
-        translatedText: mmData.responseData.translatedText,
-        detectedSourceLang: mmData.responseData.match || sourceLang,
-        phonetic: null,
-        notes: null,
-        synonyms: [],
-        engine: "MyMemory Neural API",
-      });
+    if (gtxData && Array.isArray(gtxData) && gtxData[0]) {
+      let translatedText = "";
+      if (Array.isArray(gtxData[0])) {
+        for (const chunk of gtxData[0]) {
+          if (Array.isArray(chunk) && chunk[0]) {
+            translatedText += chunk[0];
+          }
+        }
+      }
+      if (translatedText) {
+        return res.json({
+          success: true,
+          translatedText,
+          detectedSourceLang: gtxData[2] || sourceLang,
+          phonetic: null,
+          notes: null,
+          synonyms: [],
+          engine: "Google Translate (Universal)",
+        });
+      }
     }
 
     return res.status(500).json({ error: "Gagal menerjemahkan teks." });

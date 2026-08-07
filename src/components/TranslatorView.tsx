@@ -133,27 +133,37 @@ export const TranslatorView: React.FC<TranslatorViewProps> = ({ onBack }) => {
         data = backendRes.data;
       }
 
-      // 2. Direct MyMemory Fallback
+      // 2. Direct Google Translate Universal Fallback (Supports all languages including Jawa, Sunda, etc.)
       if (!data) {
-        const srcCode = sourceLang === "auto" ? "autodetect" : sourceLang;
-        const langpair = `${srcCode}|${targetLang}`;
-        const mmUrl = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(inputText.trim())}&langpair=${encodeURIComponent(langpair)}`;
-        const mmRes = await safeFetchJson(mmUrl);
+        const sl = sourceLang === "auto" ? "auto" : (sourceLang === "jv" ? "jw" : sourceLang);
+        const tl = targetLang === "jv" ? "jw" : targetLang;
+        const gtxUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sl}&tl=${tl}&dt=t&q=${encodeURIComponent(inputText.trim())}`;
+        const gtxRes = await safeFetchJson(gtxUrl);
 
-        if (mmRes.ok && mmRes.data && mmRes.data.responseData && mmRes.data.responseData.translatedText) {
-          data = {
-            success: true,
-            translatedText: mmRes.data.responseData.translatedText,
-            detectedSourceLang: mmRes.data.responseData.match || sourceLang,
-            phonetic: null,
-            notes: null,
-            synonyms: [],
-            engine: "MyMemory Neural API (Direct Client)",
-          };
+        if (gtxRes.ok && gtxRes.data && Array.isArray(gtxRes.data) && gtxRes.data[0]) {
+          let translatedText = "";
+          if (Array.isArray(gtxRes.data[0])) {
+            for (const chunk of gtxRes.data[0]) {
+              if (Array.isArray(chunk) && chunk[0]) {
+                translatedText += chunk[0];
+              }
+            }
+          }
+          if (translatedText) {
+            data = {
+              success: true,
+              translatedText,
+              detectedSourceLang: gtxRes.data[2] || sourceLang,
+              phonetic: null,
+              notes: null,
+              synonyms: [],
+              engine: "Google Translate (Universal)",
+            };
+          }
         }
       }
 
-      if (!data || !data.success) {
+      if (!data || !data.success || !data.translatedText) {
         throw new Error("Gagal menerjemahkan teks. Periksa koneksi internet Anda.");
       }
 
@@ -172,8 +182,30 @@ export const TranslatorView: React.FC<TranslatorViewProps> = ({ onBack }) => {
       return;
     }
     window.speechSynthesis.cancel();
+
+    const langMap: { [key: string]: string } = {
+      auto: "id-ID",
+      id: "id-ID",
+      en: "en-US",
+      jv: "id-ID",
+      su: "id-ID",
+      ar: "ar-SA",
+      ja: "ja-JP",
+      ko: "ko-KR",
+      zh: "zh-CN",
+      es: "es-ES",
+      fr: "fr-FR",
+      de: "de-DE",
+      ru: "ru-RU",
+      pt: "pt-PT",
+      it: "it-IT",
+      nl: "nl-NL",
+      tr: "tr-TR",
+      hi: "hi-IN",
+    };
+
     const utterance = new SpeechSynthesisUtterance(textToSpeak);
-    utterance.lang = langCode === "auto" ? "id-ID" : langCode;
+    utterance.lang = langMap[langCode] || "id-ID";
     utterance.rate = 0.9;
     window.speechSynthesis.speak(utterance);
   };

@@ -123,7 +123,12 @@ export default function App() {
       <div className="relative z-10 max-w-md mx-auto px-4 space-y-5">
         {/* Header */}
         <Header
-          onHomeClick={() => setActiveTool(null)}
+          onHomeClick={() => {
+            if ("speechSynthesis" in window) {
+              window.speechSynthesis.cancel();
+            }
+            setActiveTool(null);
+          }}
           onNotificationClick={() => setShowNotification(true)}
         />
 
