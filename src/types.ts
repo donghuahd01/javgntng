@@ -74,7 +74,28 @@ export interface TranslationResult {
 
 export type CategoryFilter = "All" | "Downloader" | "Agama" | "Utility";
 
-export type ActiveTool = "tiktok" | "translator" | "calculator" | "quran" | "weather_calendar" | null;
+export type ActiveTool = "tiktok" | "translator" | "calculator" | "quran" | "weather_calendar" | "piggy_bank" | null;
+
+export interface PiggyGoal {
+  id: string;
+  title: string;
+  targetAmount: number;
+  currentAmount: number;
+  targetDate: string;
+  categoryIcon: "piggy" | "laptop" | "phone" | "plane" | "car" | "home" | "heart";
+  colorTheme: string;
+  createdAt: string;
+  isCompleted: boolean;
+}
+
+export interface PiggyTransaction {
+  id: string;
+  goalId: string;
+  type: "deposit" | "withdraw";
+  amount: number;
+  note: string;
+  timestamp: string;
+}
 
 export interface SurahSummary {
   nomor: number;

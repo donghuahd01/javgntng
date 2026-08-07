@@ -12,10 +12,10 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ onComplete }) => {
 
   // System modules status checklist
   const modules = [
-    { name: "Core System", at: 10 },
-    { name: "TikTok Downloader", at: 35 },
-    { name: "Terjemahkan Bahasa", at: 60 },
-    { name: "Jadwal Sholat & Quran", at: 85 },
+    { name: "TikTok Downloader", at: 20 },
+    { name: "Celengan Online", at: 45 },
+    { name: "Terjemahkan Bahasa", at: 70 },
+    { name: "Jadwal Sholat & Quran", at: 90 },
   ];
 
   useEffect(() => {

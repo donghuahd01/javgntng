@@ -8,6 +8,7 @@ import { TranslatorView } from "./components/TranslatorView";
 import { CalculatorModal } from "./components/CalculatorModal";
 import { QuranModal } from "./components/QuranModal";
 import { WeatherCalendarModal } from "./components/WeatherCalendarModal";
+import { PiggyBankView } from "./components/PiggyBankView";
 import { NotificationModal } from "./components/NotificationModal";
 import { ShootingStars } from "./components/ShootingStars";
 import { LoadingScreen } from "./components/LoadingScreen";
@@ -21,6 +22,7 @@ import {
   Zap,
   BookOpen,
   Calendar,
+  PiggyBank,
 } from "lucide-react";
 
 export default function App() {
@@ -96,6 +98,19 @@ export default function App() {
         </div>
       ),
     },
+    {
+      id: "piggy_bank" as const,
+      category: "Utility" as const,
+      title: "Celengan Online",
+      description: "Tabungan digital, atur target impian & riwayat setor/tarik",
+      badge: "TABUNGAN",
+      featured: false,
+      icon: (
+        <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-pink-600 via-fuchsia-600 to-purple-600 border border-pink-400/50 flex items-center justify-center text-white shadow-lg shadow-pink-600/30">
+          <PiggyBank className="w-6 h-6 text-pink-200" />
+        </div>
+      ),
+    },
   ];
 
 
@@ -149,6 +164,10 @@ export default function App() {
         ) : activeTool === "calculator" ? (
           <div className="rounded-3xl bg-[#100824]/95 border border-purple-500/30 p-4 sm:p-5 shadow-2xl backdrop-blur-xl">
             <CalculatorModal onBack={() => setActiveTool(null)} />
+          </div>
+        ) : activeTool === "piggy_bank" ? (
+          <div className="rounded-3xl bg-[#100824]/95 border border-purple-500/30 p-4 sm:p-5 shadow-2xl backdrop-blur-xl">
+            <PiggyBankView onBack={() => setActiveTool(null)} />
           </div>
         ) : (
           <main className="space-y-5">
