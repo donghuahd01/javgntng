@@ -16,6 +16,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { TranslationResult } from "../types";
+import { safeFetchJson } from "../utils/safeApi";
 
 interface TranslatorViewProps {
   onBack: () => void;
@@ -96,37 +97,35 @@ export const TranslatorView: React.FC<TranslatorViewProps> = ({ onBack }) => {
 
     try {
       let data: any = null;
-      try {
-        const res = await fetch("/api/translate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            text: inputText.trim(),
-            sourceLang,
-            targetLang,
-            style,
-          }),
-        });
-        if (res.ok) {
-          data = await res.json();
-        }
-      } catch (backendErr) {
-        console.warn("Backend Translate API failed, attempting direct MyMemory fetch:", backendErr);
+
+      // 1. Try Backend API
+      const backendRes = await safeFetchJson("/api/translate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: inputText.trim(),
+          sourceLang,
+          targetLang,
+          style,
+        }),
+      });
+
+      if (backendRes.ok && backendRes.data && backendRes.data.success) {
+        data = backendRes.data;
       }
 
-      // Client Direct Fallback
-      if (!data || !data.success) {
+      // 2. Direct MyMemory Fallback
+      if (!data) {
         const srcCode = sourceLang === "auto" ? "autodetect" : sourceLang;
         const langpair = `${srcCode}|${targetLang}`;
         const mmUrl = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(inputText.trim())}&langpair=${encodeURIComponent(langpair)}`;
-        const mmRes = await fetch(mmUrl);
-        const mmJson = await mmRes.json();
+        const mmRes = await safeFetchJson(mmUrl);
 
-        if (mmJson && mmJson.responseData && mmJson.responseData.translatedText) {
+        if (mmRes.ok && mmRes.data && mmRes.data.responseData && mmRes.data.responseData.translatedText) {
           data = {
             success: true,
-            translatedText: mmJson.responseData.translatedText,
-            detectedSourceLang: mmJson.responseData.match || sourceLang,
+            translatedText: mmRes.data.responseData.translatedText,
+            detectedSourceLang: mmRes.data.responseData.match || sourceLang,
             phonetic: null,
             notes: null,
             synonyms: [],
@@ -136,7 +135,7 @@ export const TranslatorView: React.FC<TranslatorViewProps> = ({ onBack }) => {
       }
 
       if (!data || !data.success) {
-        throw new Error(data?.error || "Gagal menerjemahkan teks.");
+        throw new Error("Gagal menerjemahkan teks. Periksa koneksi internet Anda.");
       }
 
       setResult(data);

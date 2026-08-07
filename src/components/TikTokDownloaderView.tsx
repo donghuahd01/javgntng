@@ -18,6 +18,7 @@ import {
   Image as ImageIcon,
 } from "lucide-react";
 import { TikTokResult } from "../types";
+import { safeFetchJson } from "../utils/safeApi";
 
 interface TikTokDownloaderViewProps {
   onBack: () => void;
@@ -56,29 +57,23 @@ export const TikTokDownloaderView: React.FC<TikTokDownloaderViewProps> = ({ onBa
 
     try {
       let data: any = null;
-      try {
-        const res = await fetch("/api/tiktok/download", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url: url.trim() }),
-        });
-        if (res.ok) {
-          data = await res.json();
-        }
-      } catch (backendErr) {
-        console.warn("Backend TikTok API failed, attempting direct client fetch:", backendErr);
+
+      // 1. Try Backend API
+      const backendRes = await safeFetchJson("/api/tiktok/download", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: url.trim() }),
+      });
+
+      if (backendRes.ok && backendRes.data && backendRes.data.success) {
+        data = backendRes.data;
       }
 
-      // Client Direct Fallback if backend API failed or returned error
-      if (!data || !data.success) {
-        const directRes = await fetch(`https://www.tikwm.com/api/?url=${encodeURIComponent(url.trim())}&hd=1`, {
-          headers: {
-            "Accept": "application/json",
-          },
-        });
-        const directJson = await directRes.json();
-        if (directJson && directJson.code === 0 && directJson.data) {
-          const d = directJson.data;
+      // 2. Direct TikWM API Fallback
+      if (!data) {
+        const tikwmRes = await safeFetchJson(`https://www.tikwm.com/api/?url=${encodeURIComponent(url.trim())}&hd=1`);
+        if (tikwmRes.ok && tikwmRes.data && tikwmRes.data.code === 0 && tikwmRes.data.data) {
+          const d = tikwmRes.data.data;
           data = {
             success: true,
             id: d.id,
@@ -86,7 +81,7 @@ export const TikTokDownloaderView: React.FC<TikTokDownloaderViewProps> = ({ onBa
             cover: d.cover,
             origin_cover: d.origin_cover,
             duration: d.duration,
-            play: d.play.startsWith("http") ? d.play : `https://www.tikwm.com${d.play}`,
+            play: d.play?.startsWith("http") ? d.play : `https://www.tikwm.com${d.play}`,
             wmplay: d.wmplay ? (d.wmplay.startsWith("http") ? d.wmplay : `https://www.tikwm.com${d.wmplay}`) : null,
             hdplay: d.hdplay ? (d.hdplay.startsWith("http") ? d.hdplay : `https://www.tikwm.com${d.hdplay}`) : null,
             music: d.music ? (d.music.startsWith("http") ? d.music : `https://www.tikwm.com${d.music}`) : null,
@@ -112,7 +107,7 @@ export const TikTokDownloaderView: React.FC<TikTokDownloaderViewProps> = ({ onBa
       }
 
       if (!data || !data.success) {
-        throw new Error(data?.error || "Gagal mengunduh video TikTok. Pastikan link video publik dan valid.");
+        throw new Error("Gagal mengunduh video TikTok. Pastikan link video publik & valid (contoh: https://vt.tiktok.com/ZS...)");
       }
 
       setResult(data);

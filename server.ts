@@ -506,6 +506,25 @@ app.get(["/api/weather", "/weather"], async (req, res) => {
   }
 });
 
+// Health check endpoint
+app.get(["/api/health", "/health", "/api"], (req, res) => {
+  res.json({ success: true, message: "JAVA TOOLS API Server Active", status: "ok" });
+});
+
+// 404 Fallback for unmatched API routes
+app.use((req, res, next) => {
+  if (req.path.startsWith("/api")) {
+    return res.status(404).json({ success: false, error: `Endpoint ${req.method} ${req.path} tidak ditemukan` });
+  }
+  next();
+});
+
+// Global Error Handler for Express
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error("Server error handler:", err);
+  res.status(500).json({ success: false, error: err?.message || "Terjadi kesalahan internal pada server" });
+});
+
 // Vite middleware for development vs static serve for production
 
 async function startServer() {

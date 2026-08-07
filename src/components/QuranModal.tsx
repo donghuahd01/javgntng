@@ -17,6 +17,7 @@ import {
   Check,
 } from "lucide-react";
 import { SurahSummary, SurahDetail, AyatItem } from "../types";
+import { safeFetchJson } from "../utils/safeApi";
 
 interface QuranModalProps {
   isOpen: boolean;
@@ -101,21 +102,18 @@ export const QuranModal: React.FC<QuranModalProps> = ({ isOpen, onClose }) => {
     setErrorMsg(null);
     try {
       let data: any = null;
-      try {
-        const res = await fetch("/api/quran/surat");
-        if (res.ok) {
-          data = await res.json();
-        }
-      } catch (backendErr) {
-        console.warn("Backend Quran List API failed, attempting direct fetch:", backendErr);
+
+      // 1. Try Backend API
+      const backendRes = await safeFetchJson("/api/quran/surat");
+      if (backendRes.ok && backendRes.data && backendRes.data.success && Array.isArray(backendRes.data.data)) {
+        data = backendRes.data;
       }
 
-      // Direct Client Fallback
-      if (!data || !data.success || !Array.isArray(data.data)) {
-        const eqRes = await fetch("https://equran.id/api/v2/surat");
-        const eqJson = await eqRes.json();
-        if (eqJson && eqJson.code === 200 && Array.isArray(eqJson.data)) {
-          const cleaned = eqJson.data.map((s: any) => ({
+      // 2. Direct EQuran API Fallback
+      if (!data) {
+        const eqRes = await safeFetchJson("https://equran.id/api/v2/surat");
+        if (eqRes.ok && eqRes.data && eqRes.data.code === 200 && Array.isArray(eqRes.data.data)) {
+          const cleaned = eqRes.data.data.map((s: any) => ({
             ...s,
             audioFull: {
               ...s.audioFull,
@@ -129,7 +127,31 @@ export const QuranModal: React.FC<QuranModalProps> = ({ isOpen, onClose }) => {
         }
       }
 
-      if (data && data.success && Array.isArray(data.data)) {
+      // 3. Alternative Quran Cloud Fallback
+      if (!data) {
+        const cloudRes = await safeFetchJson("https://api.alquran.cloud/v1/surah");
+        if (cloudRes.ok && cloudRes.data && cloudRes.data.data && Array.isArray(cloudRes.data.data)) {
+          const cleaned = cloudRes.data.data.map((s: any) => ({
+            nomor: s.number,
+            nama: s.name,
+            namaLatin: s.englishName,
+            jumlahAyat: s.numberOfAyaths,
+            tempatTurun: s.revelationType === "Meccan" ? "Mekah" : "Madinah",
+            arti: s.englishNameTranslation,
+            deskripsi: "",
+            audioFull: {
+              "01": `https://cdn.islamic.network/quran/audio-surah/128/ar.alafasy/${s.number}.mp3`,
+              "05": `https://cdn.islamic.network/quran/audio-surah/128/ar.alafasy/${s.number}.mp3`,
+            },
+          }));
+          data = {
+            success: true,
+            data: cleaned,
+          };
+        }
+      }
+
+      if (data && data.success && Array.isArray(data.data) && data.data.length > 0) {
         setSurahList(data.data);
         setFilteredSurahs(data.data);
       } else {
@@ -149,27 +171,60 @@ export const QuranModal: React.FC<QuranModalProps> = ({ isOpen, onClose }) => {
     stopAudio();
     try {
       let data: any = null;
-      try {
-        const res = await fetch(`/api/quran/surat/${surahNumber}`);
-        if (res.ok) {
-          data = await res.json();
-        }
-      } catch (backendErr) {
-        console.warn("Backend Quran Detail API failed, attempting direct fetch:", backendErr);
+
+      // 1. Try Backend API
+      const backendRes = await safeFetchJson(`/api/quran/surat/${surahNumber}`);
+      if (backendRes.ok && backendRes.data && backendRes.data.success && backendRes.data.data) {
+        data = backendRes.data;
       }
 
-      // Direct Client Fallback
-      if (!data || !data.success || !data.data) {
-        const eqRes = await fetch(`https://equran.id/api/v2/surat/${surahNumber}`);
-        const eqJson = await eqRes.json();
-        if (eqJson && eqJson.code === 200 && eqJson.data) {
-          const d = eqJson.data;
+      // 2. Direct EQuran API Fallback
+      if (!data) {
+        const eqRes = await safeFetchJson(`https://equran.id/api/v2/surat/${surahNumber}`);
+        if (eqRes.ok && eqRes.data && eqRes.data.code === 200 && eqRes.data.data) {
+          const d = eqRes.data.data;
           if (d.audioFull) {
             d.audioFull["05"] = d.audioFull["05"] || `https://cdn.islamic.network/quran/audio-surah/128/ar.alafasy/${d.nomor}.mp3`;
           }
           data = {
             success: true,
             data: d,
+          };
+        }
+      }
+
+      // 3. Alternative AlQuran Cloud Fallback
+      if (!data) {
+        const cloudRes = await safeFetchJson(`https://api.alquran.cloud/v1/surah/${surahNumber}/editions/quran-uthmani,id.indonesian`);
+        if (cloudRes.ok && cloudRes.data && Array.isArray(cloudRes.data.data) && cloudRes.data.data.length >= 2) {
+          const arabicData = cloudRes.data.data[0];
+          const indoData = cloudRes.data.data[1];
+          const ayatList: AyatItem[] = arabicData.ayahs.map((a: any, idx: number) => ({
+            nomorAyat: a.numberInSurah,
+            teksArab: a.text,
+            teksLatin: "",
+            teksIndonesia: indoData.ayahs[idx]?.text || "",
+            audio: {
+              "01": `https://cdn.islamic.network/quran/audio/128/ar.alafasy/${a.number}.mp3`,
+              "05": `https://cdn.islamic.network/quran/audio/128/ar.alafasy/${a.number}.mp3`,
+            },
+          }));
+          data = {
+            success: true,
+            data: {
+              nomor: arabicData.number,
+              nama: arabicData.name,
+              namaLatin: arabicData.englishName,
+              jumlahAyat: arabicData.numberOfAyaths,
+              tempatTurun: arabicData.revelationType === "Meccan" ? "Mekah" : "Madinah",
+              arti: arabicData.englishNameTranslation,
+              deskripsi: "",
+              audioFull: {
+                "01": `https://cdn.islamic.network/quran/audio-surah/128/ar.alafasy/${arabicData.number}.mp3`,
+                "05": `https://cdn.islamic.network/quran/audio-surah/128/ar.alafasy/${arabicData.number}.mp3`,
+              },
+              ayat: ayatList,
+            },
           };
         }
       }
