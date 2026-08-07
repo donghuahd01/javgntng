@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Cpu, ShieldCheck, CheckCircle2, Sparkles, Zap, Radio } from "lucide-react";
+import { Cpu, ShieldCheck, CheckCircle2, Sparkles, Zap, Radio, Layers } from "lucide-react";
 
 interface LoadingScreenProps {
   onComplete: () => void;
@@ -10,20 +10,20 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ onComplete }) => {
   const [statusText, setStatusText] = useState<string>("Inisialisasi Sistem...");
   const [isFadingOut, setIsFadingOut] = useState<boolean>(false);
 
-  // System modules status
+  // System modules status checklist
   const modules = [
     { name: "Core System", at: 10 },
     { name: "TikTok Downloader", at: 35 },
     { name: "Terjemahkan Bahasa", at: 60 },
-    { name: "Jadwal Sholat", at: 85 },
+    { name: "Jadwal Sholat & Quran", at: 85 },
   ];
 
   useEffect(() => {
     const statuses = [
-      { at: 15, text: "Menyiapkan Multi Utility Suite..." },
-      { at: 40, text: "Menghubungkan API Jadwal Sholat..." },
-      { at: 70, text: "Memuat TikTok & Terjemahkan Engine..." },
-      { at: 90, text: "Mengoptimalkan Performa App..." },
+      { at: 15, text: "Memuat Modul Utama & Tema Obsidian..." },
+      { at: 40, text: "Sinkronisasi Engine TikTok & Video Downloader..." },
+      { at: 70, text: "Mengkoneksikan API Terjemahan Multi-Bahasa..." },
+      { at: 90, text: "Menyiapkan Data Jadwal Sholat & Al-Qur'an..." },
       { at: 100, text: "Sistem Siap Digunakan!" },
     ];
 
@@ -40,7 +40,7 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ onComplete }) => {
           return 100;
         }
 
-        const next = prev + Math.floor(Math.random() * 10) + 5;
+        const next = prev + Math.floor(Math.random() * 8) + 4;
         const boundedNext = Math.min(next, 100);
 
         const currentStatus = statuses.find((s) => boundedNext >= s.at);
@@ -50,12 +50,12 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ onComplete }) => {
 
         return boundedNext;
       });
-    }, 110);
+    }, 100);
 
     return () => clearInterval(timer);
   }, [onComplete]);
 
-  // Floating Particles Config
+  // Floating Ambient Particles
   const particles = [
     { left: "15%", bottom: "20%", delay: "0s", color: "bg-pink-400", size: "w-2 h-2" },
     { left: "25%", bottom: "10%", delay: "1.2s", color: "bg-cyan-400", size: "w-1.5 h-1.5" },
@@ -69,16 +69,16 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ onComplete }) => {
 
   return (
     <div
-      className={`fixed inset-0 z-50 bg-[#060210] flex flex-col items-center justify-center p-6 overflow-hidden transition-opacity duration-500 selection:bg-pink-500 selection:text-white ${
-        isFadingOut ? "opacity-0 pointer-events-none" : "opacity-100"
+      className={`fixed inset-0 z-50 bg-[#050212] flex flex-col items-center justify-center p-6 overflow-hidden transition-all duration-700 select-none ${
+        isFadingOut ? "opacity-0 scale-105 pointer-events-none" : "opacity-100 scale-100"
       }`}
     >
-      {/* Background Animated Floating Particles */}
+      {/* Background Animated Particles */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         {particles.map((p, index) => (
           <div
             key={index}
-            className={`animate-float-particle absolute rounded-full ${p.color} ${p.size} shadow-[0_0_10px_currentColor]`}
+            className={`animate-float-particle absolute rounded-full ${p.color} ${p.size} shadow-[0_0_12px_currentColor]`}
             style={{
               left: p.left,
               bottom: p.bottom,
@@ -88,107 +88,116 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ onComplete }) => {
         ))}
       </div>
 
-      {/* Background Ambient Spheres */}
-      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-purple-600/20 rounded-full blur-[110px] pointer-events-none" />
-      <div className="absolute bottom-1/3 left-1/2 -translate-x-1/2 w-80 h-80 bg-pink-600/15 rounded-full blur-[110px] pointer-events-none" />
+      {/* Luxury Radial Backlight Orbs */}
+      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[420px] h-[420px] bg-gradient-to-tr from-purple-600/20 via-pink-600/20 to-cyan-500/10 rounded-full blur-[130px] pointer-events-none animate-pulse" />
+      <div className="absolute bottom-1/4 left-1/2 -translate-x-1/2 w-[340px] h-[340px] bg-pink-600/15 rounded-full blur-[120px] pointer-events-none" />
 
-      {/* Main Container */}
-      <div className="relative z-10 w-full max-w-sm flex flex-col items-center text-center space-y-7">
+      {/* Main Glassmorphic Card Container */}
+      <div className="relative z-10 w-full max-w-sm flex flex-col items-center text-center space-y-7 p-7 rounded-3xl bg-white/[0.03] border border-white/10 backdrop-blur-2xl shadow-[0_0_60px_rgba(217,70,239,0.18)]">
         
-        {/* Animated 3D Core Logo Module */}
-        <div className="relative flex items-center justify-center">
-          {/* Concentric Expanding Radar Energy Rings */}
-          <div className="animate-expand-ring absolute w-28 h-28 rounded-full border border-pink-500/40 pointer-events-none" />
+        {/* Luxury Glowing Emblem Badge */}
+        <div className="relative flex items-center justify-center my-2">
+          {/* Energy Waves */}
+          <div className="animate-expand-ring absolute w-24 h-24 rounded-full border border-pink-500/30 pointer-events-none" />
           <div
-            className="animate-expand-ring absolute w-28 h-28 rounded-full border border-cyan-400/30 pointer-events-none"
+            className="animate-expand-ring absolute w-24 h-24 rounded-full border border-cyan-400/20 pointer-events-none"
             style={{ animationDelay: "1.2s" }}
           />
 
-          {/* Outer Rotating Glowing Square Ring */}
-          <div className="w-28 h-28 rounded-3xl bg-gradient-to-tr from-pink-500 via-fuchsia-500 to-cyan-400 p-0.5 animate-spin [animation-duration:5s] shadow-[0_0_35px_rgba(236,72,153,0.5)]">
-            <div className="w-full h-full rounded-[22px] bg-[#0c051f]" />
+          {/* Elegant Circular Glow Halo */}
+          <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-pink-500/20 via-fuchsia-500/25 to-cyan-400/20 p-0.5 border border-pink-400/40 shadow-[0_0_35px_rgba(236,72,153,0.35)] flex items-center justify-center animate-pulse">
+            <div className="w-full h-full rounded-full bg-[#0c051f]/80 backdrop-blur-sm" />
           </div>
 
-          {/* Counter-Clockwise Orbiting Satellite Particle */}
+          {/* Orbiting Light Satellite Dot */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="animate-reverse-orbit w-3 h-3 rounded-full bg-cyan-400 shadow-[0_0_12px_#00e5ff] border border-white" />
+            <div className="animate-reverse-orbit w-3 h-3 rounded-full bg-cyan-400 shadow-[0_0_14px_#00e5ff] border border-white" />
           </div>
 
-          {/* Inner Core Card with Laser Scan Line */}
+          {/* Center Emblem Core */}
           <div className="absolute inset-0 flex items-center justify-center overflow-hidden rounded-2xl">
-            <div className="w-18 h-18 rounded-2xl bg-gradient-to-tr from-purple-950 via-[#180b33] to-pink-950 border border-pink-400/60 flex items-center justify-center text-pink-300 shadow-2xl relative overflow-hidden">
-              {/* Laser Scan Line Sweeping Vertically */}
-              <div className="animate-scan-line absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent shadow-[0_0_8px_#00e5ff]" />
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-purple-950 via-[#160a33] to-pink-950 border border-pink-400/60 flex items-center justify-center text-pink-300 shadow-2xl relative overflow-hidden">
+              {/* Vertical Laser Scan Effect */}
+              <div className="animate-scan-line absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent shadow-[0_0_14px_#00e5ff]" />
               
-              <Cpu className="w-9 h-9 text-pink-400 animate-pulse drop-shadow-[0_0_12px_rgba(236,72,153,0.8)]" />
+              <Layers className="w-8 h-8 text-pink-300 animate-pulse drop-shadow-[0_0_16px_rgba(236,72,153,0.9)]" />
             </div>
           </div>
         </div>
 
-        {/* Brand Title with Rainbow Animation */}
-        <div className="space-y-1">
-          <div className="flex items-center justify-center gap-1.5">
-            <Sparkles className="w-4 h-4 text-pink-400 animate-bounce" />
-            <h1 className="rainbow-text text-3xl font-black tracking-wider drop-shadow-[0_0_20px_rgba(217,70,239,0.7)] font-mono">
-              JAVA TOOLS
-            </h1>
-            <Zap className="w-4 h-4 text-cyan-400 animate-pulse" />
+        {/* Brand Header */}
+        <div className="space-y-1.5">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-900/40 border border-pink-500/30 text-pink-300 text-[10px] font-bold tracking-widest uppercase shadow-inner">
+            <Sparkles className="w-3 h-3 text-pink-400 animate-bounce" />
+            <span>Multi Utility Suite</span>
           </div>
-          <p className="text-[10px] font-bold tracking-[0.35em] text-purple-300/80 uppercase">
-            Multi Utility Suite v2.5
+
+          <h1 className="text-3xl font-black tracking-[0.18em] text-transparent bg-clip-text bg-gradient-to-r from-white via-pink-200 to-cyan-200 drop-shadow-[0_0_25px_rgba(236,72,153,0.6)] font-mono uppercase">
+            JAVA TOOLS
+          </h1>
+          <p className="text-[10px] font-medium tracking-wider text-purple-200/70">
+            Aplikasi Utilitas Serbaguna & Presisi
           </p>
         </div>
 
-        {/* System Modules Checklist */}
+        {/* System Checklist Grid */}
         <div className="grid grid-cols-2 gap-2 w-full text-[10px] font-mono">
           {modules.map((m) => {
             const isReady = progress >= m.at;
             return (
               <div
                 key={m.name}
-                className={`p-2 rounded-xl border flex items-center gap-1.5 transition-all ${
+                className={`p-2.5 rounded-xl border flex items-center gap-2 transition-all duration-300 ${
                   isReady
-                    ? "bg-purple-950/60 border-pink-500/40 text-pink-200 shadow-sm"
+                    ? "bg-purple-950/70 border-pink-500/40 text-pink-100 shadow-[0_0_12px_rgba(236,72,153,0.15)]"
                     : "bg-purple-950/20 border-purple-900/40 text-purple-400/50"
                 }`}
               >
                 <CheckCircle2
-                  className={`w-3.5 h-3.5 flex-shrink-0 transition-colors ${
-                    isReady ? "text-emerald-400" : "text-purple-700"
+                  className={`w-3.5 h-3.5 flex-shrink-0 transition-all duration-300 ${
+                    isReady ? "text-emerald-400 scale-110 drop-shadow-[0_0_8px_#10b981]" : "text-purple-800"
                   }`}
                 />
-                <span className="truncate">{m.name}</span>
+                <span className="truncate font-semibold">{m.name}</span>
               </div>
             );
           })}
         </div>
 
-        {/* Glowing Progress Bar Container */}
+        {/* Progress Bar & Status Section */}
         <div className="w-full space-y-2.5">
-          <div className="flex items-center justify-between text-xs font-mono">
-            <span className="text-purple-300/90 font-semibold flex items-center gap-1.5">
-              <Radio className="w-3.5 h-3.5 text-pink-400 animate-ping" />
-              {statusText}
+          <div className="flex items-center justify-between text-xs font-sans">
+            <span className="text-purple-200/90 font-medium text-[11px] flex items-center gap-1.5 truncate max-w-[210px]">
+              <Radio className="w-3.5 h-3.5 text-pink-400 animate-ping flex-shrink-0" />
+              <span className="truncate">{statusText}</span>
             </span>
-            <span className="text-cyan-300 font-extrabold font-mono text-sm">{progress}%</span>
+            <span className="text-cyan-300 font-black font-mono text-base tracking-tight">{progress}%</span>
           </div>
 
-          {/* Glowing Track & Fill Bar */}
-          <div className="w-full h-3 rounded-full bg-purple-950/90 border border-purple-800/60 overflow-hidden p-0.5 shadow-inner relative">
+          {/* Glass Progress Bar */}
+          <div className="w-full h-3 rounded-full bg-white/[0.06] border border-white/10 overflow-hidden p-0.5 backdrop-blur-md shadow-inner relative">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-pink-500 via-fuchsia-500 to-cyan-400 transition-all duration-200 ease-out shadow-[0_0_15px_#ec4899] relative"
+              className="h-full rounded-full bg-gradient-to-r from-pink-500 via-fuchsia-500 to-cyan-400 transition-all duration-300 ease-out shadow-[0_0_20px_#ec4899] relative overflow-hidden"
               style={{ width: `${progress}%` }}
             >
-              {/* Particle highlight at tip of bar */}
-              <div className="absolute right-0 top-0 bottom-0 w-2 bg-white rounded-full shadow-[0_0_10px_#ffffff]" />
+              {/* Traveling Shimmer Light Effect */}
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent animate-shimmer" />
+              {/* Glowing Tip Accent */}
+              <div className="absolute right-0 top-0 bottom-0 w-2 bg-white rounded-full shadow-[0_0_12px_#ffffff]" />
             </div>
           </div>
         </div>
 
-        {/* Security / System Footer Badge */}
-        <div className="flex items-center gap-2 text-[10px] font-mono text-purple-300/70 bg-purple-950/40 px-3.5 py-1.5 rounded-full border border-purple-800/40 shadow-sm">
-          <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-          <span>Sistem Terverifikasi • Bebas Iklan</span>
+        {/* Security & Version Footer */}
+        <div className="flex items-center justify-between w-full pt-1 border-t border-white/10 text-[10px] font-mono text-purple-300/70">
+          <div className="flex items-center gap-1.5">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Keamanan Terjamin</span>
+          </div>
+          <div className="flex items-center gap-1 text-pink-300/80 font-bold">
+            <Zap className="w-3 h-3 text-cyan-400" />
+            <span>v2.5 PRO</span>
+          </div>
         </div>
 
       </div>

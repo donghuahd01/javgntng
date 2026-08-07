@@ -46,15 +46,15 @@
     transform: translate3d(0, 0, var(--star-z, 0px)) rotate(-38deg) scaleX(0);
     opacity: 0;
   }
-  10% {
+  8% {
     opacity: 1;
-    transform: translate3d(-40px, 32px, var(--star-z, 0px)) rotate(-38deg) scaleX(0.8);
+    transform: translate3d(-60px, 48px, var(--star-z, 0px)) rotate(-38deg) scaleX(0.9);
   }
-  70% {
+  80% {
     opacity: 1;
   }
   100% {
-    transform: translate3d(-700px, 560px, var(--star-z, 0px)) rotate(-38deg) scaleX(1.4);
+    transform: translate3d(-1100px, 880px, var(--star-z, 0px)) rotate(-38deg) scaleX(1.5);
     opacity: 0;
   }
 }
@@ -153,3 +153,92 @@
 .animate-reverse-orbit {
   animation: reverseOrbit 4s linear infinite;
 }
+
+/* Shimmer Wave Animation */
+@keyframes shimmerWave {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmerWave 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Glow Pulse Animation */
+@keyframes glowPulse {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(236, 72, 153, 0.3), 0 0 30px rgba(168, 85, 247, 0.2);
+    filter: brightness(1);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(236, 72, 153, 0.7), 0 0 55px rgba(0, 229, 255, 0.5);
+    filter: brightness(1.25);
+  }
+}
+
+.animate-glow-pulse {
+  animation: glowPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Smooth Liquid Spin */
+@keyframes smoothSpin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-smooth-spin {
+  animation: smoothSpin 1.1s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+}
+
+/* Wave Bouncing Dots */
+@keyframes waveDot {
+  0%, 100% {
+    transform: translateY(0) scale(0.85);
+    opacity: 0.4;
+  }
+  50% {
+    transform: translateY(-7px) scale(1.25);
+    opacity: 1;
+  }
+}
+
+.animate-wave-dot-1 {
+  animation: waveDot 1.1s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite 0s;
+}
+
+.animate-wave-dot-2 {
+  animation: waveDot 1.1s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite 0.18s;
+}
+
+.animate-wave-dot-3 {
+  animation: waveDot 1.1s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite 0.36s;
+}
+
+/* Liquid Blob Morphing */
+@keyframes morphBlob {
+  0%, 100% {
+    border-radius: 42% 58% 70% 30% / 45% 45% 55% 55%;
+    transform: rotate(0deg);
+  }
+  33% {
+    border-radius: 70% 30% 46% 54% / 30% 60% 40% 70%;
+    transform: rotate(120deg);
+  }
+  66% {
+    border-radius: 50% 50% 30% 70% / 55% 30% 70% 45%;
+    transform: rotate(240deg);
+  }
+}
+
+.animate-morph-blob {
+  animation: morphBlob 7s ease-in-out infinite;
+}
+
