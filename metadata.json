@@ -1,0 +1,6 @@
+{
+  "name": "Java Tools - Multi Utility Suite",
+  "description": "Multi utility app dengan TikTok Downloader tanpa watermark, Terjemahkan Bahasa instan, Jadwal Sholat, Informasi Perangkat, dan Kalkulator.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
