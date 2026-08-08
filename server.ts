@@ -2,6 +2,8 @@ import express from "express";
 import path from "path";
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
+import ndown from "nayan-media-downloaders";
+import https from "https";
 
 dotenv.config();
 
@@ -137,6 +139,85 @@ app.post(["/api/tiktok/download", "/tiktok/download"], async (req, res) => {
   } catch (err: any) {
     console.error("Error downloading TikTok:", err);
     res.status(500).json({ error: "Terjadi kesalahan server saat memproses TikTok video." });
+  }
+});
+
+// ----------------------------------------------------
+// API 1b: Instagram Downloader Endpoint
+// ----------------------------------------------------
+app.post(["/api/instagram/download", "/instagram/download"], async (req, res) => {
+  try {
+    const { url } = req.body;
+    if (!url || typeof url !== "string") {
+      return res.status(400).json({ error: "URL Instagram wajib diisi." });
+    }
+
+    const trimmedUrl = url.trim();
+    if (!trimmedUrl.includes("instagram.com")) {
+      return res.status(400).json({
+        error: "URL tidak valid. Masukkan link Instagram yang sah.",
+      });
+    }
+
+    // Try nayan-media-downloaders
+    try {
+      const data = await ndown.instagram(trimmedUrl);
+      if (data && data.status && data.data) {
+        const d = data.data;
+        return res.json({
+          success: true,
+          title: d.title || "Instagram Media",
+          thumbnail: d.thumb?.[0] || d.thumbnail,
+          video: d.video?.[0] || d.url,
+          images: d.images || [],
+          audio: d.video?.[0] || d.url, 
+        });
+      }
+    } catch (nayanErr) {
+      console.warn("Nayan Instagram download failed:", nayanErr);
+    }
+
+    // Fallback: alldown
+    try {
+      const data = await ndown.alldown(trimmedUrl);
+      if (data && data.status && data.data) {
+        const d = data.data;
+        return res.json({
+          success: true,
+          title: d.title || "Instagram Media",
+          thumbnail: d.thumbnail,
+          video: d.high || d.low,
+          audio: d.high || d.low,
+        });
+      }
+    } catch (allErr) {
+      console.warn("Alldown fallback failed:", allErr);
+    }
+
+    // Fallback: Tiklydown with SSL bypass
+    try {
+      const agent = new https.Agent({ rejectUnauthorized: false });
+      const tiklyRes = await fetch(`https://api.tiklydown.eu.org/api/download?url=${encodeURIComponent(trimmedUrl)}`, { agent } as any);
+      const tiklyData = await tiklyRes.json();
+      if (tiklyData && (tiklyData.video || tiklyData.url)) {
+        return res.json({
+          success: true,
+          title: tiklyData.title || "Instagram Media",
+          thumbnail: tiklyData.thumbnail || tiklyData.cover,
+          video: tiklyData.video?.noWatermark || tiklyData.url,
+          audio: tiklyData.music?.play_url || tiklyData.audio || tiklyData.video?.noWatermark || tiklyData.url,
+        });
+      }
+    } catch (tiklyErr) {
+      console.warn("Tiklydown Instagram fallback failed:", tiklyErr);
+    }
+
+    return res.status(422).json({
+      error: "Gagal mengunduh media Instagram. Pastikan akun tidak privat dan link benar.",
+    });
+  } catch (err: any) {
+    console.error("Error downloading Instagram:", err);
+    res.status(500).json({ error: "Terjadi kesalahan server saat memproses Instagram." });
   }
 });
 

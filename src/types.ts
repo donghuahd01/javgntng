@@ -62,6 +62,20 @@ export interface TikTokResult {
   images?: string[];
 }
 
+export interface InstagramResult {
+  success: boolean;
+  title?: string;
+  thumbnail?: string;
+  video?: string;
+  audio?: string;
+  images?: string[];
+  author?: {
+    nickname?: string;
+    unique_id?: string;
+    avatar?: string;
+  };
+}
+
 export interface TranslationResult {
   success: boolean;
   translatedText: string;
@@ -74,7 +88,7 @@ export interface TranslationResult {
 
 export type CategoryFilter = "All" | "Downloader" | "Agama" | "Utility";
 
-export type ActiveTool = "tiktok" | "translator" | "calculator" | "quran" | "weather_calendar" | "piggy_bank" | null;
+export type ActiveTool = "tiktok" | "instagram" | "translator" | "calculator" | "quran" | "weather_calendar" | "piggy_bank" | null;
 
 export interface PiggyGoal {
   id: string;
