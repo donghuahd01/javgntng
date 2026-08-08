@@ -141,6 +141,255 @@ app.post(["/api/tiktok/download", "/tiktok/download"], async (req, res) => {
 });
 
 // ----------------------------------------------------
+// API 1b: Instagram Downloader Endpoint (GraphQL + Embed Fallback)
+// ----------------------------------------------------
+const IG_USER_AGENT =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36";
+
+function extractInstagramShortcode(rawUrl: string): string | null {
+  try {
+    const u = new URL(rawUrl);
+    if (!u.hostname.includes("instagram.com")) return null;
+    const match = u.pathname.match(/\/(?:p|reel|reels|tv)\/([A-Za-z0-9_-]+)/);
+    return match ? match[1] : null;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchInstagramGraphql(shortcode: string): Promise<any | null> {
+  try {
+    const body = new URLSearchParams({
+      av: "0",
+      __d: "www",
+      __user: "0",
+      __a: "1",
+      __req: "3",
+      dpr: "1",
+      lsd: "AVqbxe3J_YA",
+      variables: JSON.stringify({
+        shortcode,
+        fetch_tagged_user_count: null,
+        hoisted_comment_id: null,
+        hoisted_reply_id: null,
+      }),
+      server_timestamps: "true",
+      doc_id: "8845758582119845",
+    }).toString();
+
+    const resp = await fetch("https://www.instagram.com/graphql/query", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "User-Agent": IG_USER_AGENT,
+        "X-IG-App-ID": "936619743392459",
+        "X-FB-LSD": "AVqbxe3J_YA",
+        "X-ASBD-ID": "129477",
+        "Sec-Fetch-Site": "same-origin",
+        Origin: "https://www.instagram.com",
+        Referer: `https://www.instagram.com/p/${shortcode}/`,
+      },
+      body,
+    });
+
+    if (!resp.ok) return null;
+    const json = await resp.json();
+    return json?.data?.xdt_shortcode_media || null;
+  } catch (err) {
+    console.warn("Instagram GraphQL failed:", err);
+    return null;
+  }
+}
+
+async function fetchInstagramEmbed(shortcode: string): Promise<any | null> {
+  try {
+    const resp = await fetch(`https://www.instagram.com/p/${shortcode}/embed/captioned/`, {
+      headers: {
+        "User-Agent": IG_USER_AGENT,
+        "Accept-Language": "en-US,en;q=0.9",
+      },
+    });
+    if (!resp.ok) return null;
+    const html = await resp.text();
+
+    const unescapeJson = (s: string) =>
+      s.replace(/\\u0026/g, "&").replace(/\\\//g, "/").replace(/\\"/g, '"').replace(/&amp;/g, "&");
+
+    const videoMatch = html.match(/"video_url":"([^"]+)"/);
+    const displayMatch = html.match(/"display_url":"([^"]+)"/);
+    const usernameMatch = html.match(/"username":"([^"]+)"/) || html.match(/class="UsernameText"[^>]*>([^<]+)</);
+    const captionMatch = html.match(/class="Caption"[^>]*>[\s\S]*?<\/a>([\s\S]*?)<div/);
+
+    // Fallback: embed image tag
+    const imgTagMatch = html.match(/class="EmbeddedMediaImage"[^>]*src="([^"]+)"/);
+
+    const videoUrl = videoMatch ? unescapeJson(videoMatch[1]) : null;
+    const displayUrl = displayMatch
+      ? unescapeJson(displayMatch[1])
+      : imgTagMatch
+        ? unescapeJson(imgTagMatch[1])
+        : null;
+
+    if (!videoUrl && !displayUrl) return null;
+
+    return {
+      is_video: !!videoUrl,
+      video_url: videoUrl,
+      display_url: displayUrl,
+      owner: { username: usernameMatch ? usernameMatch[1] : "instagram_user", full_name: null },
+      edge_media_to_caption: {
+        edges: captionMatch
+          ? [{ node: { text: captionMatch[1].replace(/<[^>]+>/g, "").trim() } }]
+          : [],
+      },
+    };
+  } catch (err) {
+    console.warn("Instagram embed fallback failed:", err);
+    return null;
+  }
+}
+
+app.post(["/api/instagram/download", "/instagram/download"], async (req, res) => {
+  try {
+    const { url } = req.body;
+    if (!url || typeof url !== "string") {
+      return res.status(400).json({ error: "URL Instagram wajib diisi." });
+    }
+
+    const trimmedUrl = url.trim();
+    const shortcode = extractInstagramShortcode(trimmedUrl);
+    if (!shortcode) {
+      return res.status(400).json({
+        error:
+          "URL tidak valid. Masukkan link post/reel Instagram yang sah (contoh: https://www.instagram.com/reel/Cxxxx/)",
+      });
+    }
+
+    // Strategy 1: Instagram Internal GraphQL API
+    let media = await fetchInstagramGraphql(shortcode);
+
+    // Strategy 2: Embed page scraping fallback
+    if (!media) {
+      media = await fetchInstagramEmbed(shortcode);
+    }
+
+    if (!media) {
+      return res.status(422).json({
+        error:
+          "Gagal mengambil media Instagram. Pastikan akun/post tidak diprivat dan link benar, lalu coba lagi.",
+      });
+    }
+
+    // Normalize carousel (sidecar) children
+    const items: { type: "video" | "image"; url: string; thumbnail?: string }[] = [];
+    const children = media.edge_sidecar_to_children?.edges;
+    if (Array.isArray(children) && children.length > 0) {
+      for (const edge of children) {
+        const node = edge?.node;
+        if (!node) continue;
+        if (node.is_video && node.video_url) {
+          items.push({ type: "video", url: node.video_url, thumbnail: node.display_url });
+        } else if (node.display_url) {
+          items.push({ type: "image", url: node.display_url });
+        }
+      }
+    } else if (media.is_video && media.video_url) {
+      items.push({ type: "video", url: media.video_url, thumbnail: media.display_url });
+    } else if (media.display_url) {
+      items.push({ type: "image", url: media.display_url });
+    }
+
+    if (items.length === 0) {
+      return res.status(422).json({
+        error: "Media tidak ditemukan pada post ini. Coba link post/reel lain.",
+      });
+    }
+
+    const caption =
+      media.edge_media_to_caption?.edges?.[0]?.node?.text || "Post Instagram tanpa caption";
+
+    return res.json({
+      success: true,
+      id: media.id || shortcode,
+      shortcode,
+      caption,
+      thumbnail: media.display_url || items[0]?.thumbnail || (items[0]?.type === "image" ? items[0].url : null),
+      is_video: items.some((i) => i.type === "video"),
+      items,
+      author: {
+        username: media.owner?.username || "instagram_user",
+        full_name: media.owner?.full_name || null,
+        avatar: media.owner?.profile_pic_url || null,
+      },
+      stats: {
+        like_count: media.edge_media_preview_like?.count ?? null,
+        comment_count: media.edge_media_to_parent_comment?.count ?? media.edge_media_to_comment?.count ?? null,
+        video_view_count: media.video_view_count ?? null,
+      },
+    });
+  } catch (err: any) {
+    console.error("Error downloading Instagram:", err);
+    res.status(500).json({ error: "Terjadi kesalahan server saat memproses media Instagram." });
+  }
+});
+
+// Instagram media proxy: bypasses CORS so files can be downloaded / processed to MP3 in-browser
+app.get(["/api/instagram/media", "/instagram/media"], async (req, res) => {
+  try {
+    const mediaUrl = req.query.url as string;
+    const filename = (req.query.filename as string) || "instagram-media";
+    const forceDownload = req.query.dl === "1";
+
+    if (!mediaUrl) {
+      return res.status(400).json({ error: "Parameter url wajib diisi." });
+    }
+
+    let parsed: URL;
+    try {
+      parsed = new URL(mediaUrl);
+    } catch {
+      return res.status(400).json({ error: "URL media tidak valid." });
+    }
+
+    // Only allow Instagram/Facebook CDN hosts to prevent open-proxy abuse
+    const allowedHost =
+      /(\.cdninstagram\.com|\.fbcdn\.net)$/i.test(parsed.hostname) ||
+      /^scontent[\w.-]*\.(cdninstagram\.com|fbcdn\.net)$/i.test(parsed.hostname);
+    if (!allowedHost) {
+      return res.status(403).json({ error: "Host media tidak diizinkan." });
+    }
+
+    const upstream = await fetch(mediaUrl, {
+      headers: {
+        "User-Agent": IG_USER_AGENT,
+        Referer: "https://www.instagram.com/",
+      },
+    });
+
+    if (!upstream.ok || !upstream.body) {
+      return res.status(502).json({ error: `Gagal mengambil media dari CDN Instagram (HTTP ${upstream.status}).` });
+    }
+
+    const contentType = upstream.headers.get("content-type") || "application/octet-stream";
+    const contentLength = upstream.headers.get("content-length");
+    res.setHeader("Content-Type", contentType);
+    if (contentLength) res.setHeader("Content-Length", contentLength);
+    if (forceDownload) {
+      res.setHeader("Content-Disposition", `attachment; filename="${filename.replace(/[^\w.\- ]/g, "_")}"`);
+    }
+    res.setHeader("Cache-Control", "no-store");
+
+    const { Readable } = await import("stream");
+    Readable.fromWeb(upstream.body as any).pipe(res);
+  } catch (err: any) {
+    console.error("Error proxying Instagram media:", err);
+    if (!res.headersSent) {
+      res.status(500).json({ error: "Terjadi kesalahan server saat mengunduh media." });
+    }
+  }
+});
+
+// ----------------------------------------------------
 // API 2: Language Translation Endpoint (Gemini + MyMemory Third-Party API)
 // ----------------------------------------------------
 app.post(["/api/translate", "/translate"], async (req, res) => {

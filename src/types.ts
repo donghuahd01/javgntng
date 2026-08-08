@@ -72,9 +72,35 @@ export interface TranslationResult {
   engine: string;
 }
 
+export interface InstagramMediaItem {
+  type: "video" | "image";
+  url: string;
+  thumbnail?: string;
+}
+
+export interface InstagramResult {
+  success: boolean;
+  id: string;
+  shortcode: string;
+  caption: string;
+  thumbnail?: string | null;
+  is_video: boolean;
+  items: InstagramMediaItem[];
+  author: {
+    username: string;
+    full_name?: string | null;
+    avatar?: string | null;
+  };
+  stats: {
+    like_count: number | null;
+    comment_count: number | null;
+    video_view_count: number | null;
+  };
+}
+
 export type CategoryFilter = "All" | "Downloader" | "Agama" | "Utility";
 
-export type ActiveTool = "tiktok" | "translator" | "calculator" | "quran" | "weather_calendar" | "piggy_bank" | null;
+export type ActiveTool = "tiktok" | "instagram" | "translator" | "calculator" | "quran" | "weather_calendar" | "piggy_bank" | null;
 
 export interface PiggyGoal {
   id: string;

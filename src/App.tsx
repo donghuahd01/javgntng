@@ -4,6 +4,7 @@ import { ClockPrayerCard } from "./components/ClockPrayerCard";
 import { DeviceInfoCard } from "./components/DeviceInfoCard";
 import { CategoryTabs } from "./components/CategoryTabs";
 import { TikTokDownloaderView } from "./components/TikTokDownloaderView";
+import { InstagramDownloaderView } from "./components/InstagramDownloaderView";
 import { TranslatorView } from "./components/TranslatorView";
 import { CalculatorModal } from "./components/CalculatorModal";
 import { QuranModal } from "./components/QuranModal";
@@ -19,6 +20,7 @@ import {
   ArrowRight,
   LayoutGrid,
   Music,
+  Instagram,
   Zap,
   BookOpen,
   Calendar,
@@ -43,6 +45,19 @@ export default function App() {
       icon: (
         <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-pink-600 via-fuchsia-600 to-purple-600 border border-pink-400/50 flex items-center justify-center text-white shadow-lg shadow-pink-600/30">
           <Music className="w-6 h-6" />
+        </div>
+      ),
+    },
+    {
+      id: "instagram" as const,
+      category: "Downloader" as const,
+      title: "Instagram Downloader",
+      description: "Download video reels, foto & audio MP3 Instagram",
+      badge: "MP4 / MP3",
+      featured: false,
+      icon: (
+        <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 via-pink-600 to-purple-700 border border-pink-400/50 flex items-center justify-center text-white shadow-lg shadow-pink-600/30">
+          <Instagram className="w-6 h-6" />
         </div>
       ),
     },
@@ -156,6 +171,10 @@ export default function App() {
         {activeTool === "tiktok" ? (
           <div className="rounded-3xl bg-[#100824]/95 border border-purple-500/30 p-4 sm:p-5 shadow-2xl backdrop-blur-xl">
             <TikTokDownloaderView onBack={() => setActiveTool(null)} />
+          </div>
+        ) : activeTool === "instagram" ? (
+          <div className="rounded-3xl bg-[#100824]/95 border border-purple-500/30 p-4 sm:p-5 shadow-2xl backdrop-blur-xl">
+            <InstagramDownloaderView onBack={() => setActiveTool(null)} />
           </div>
         ) : activeTool === "translator" ? (
           <div className="rounded-3xl bg-[#100824]/95 border border-purple-500/30 p-4 sm:p-5 shadow-2xl backdrop-blur-xl">
